@@ -104,6 +104,15 @@ app.get('/movies/:movieId/:slug', (req, res) => {
 });
 
 /*****************************************************
+ * If no routes give response, show 404 Page
+ ****************************************************/
+
+app.use(function (req, res) {
+    console.error("Error 404: page nog found");
+    res.status(404).send( "Error 404: page not found");
+});
+
+/*****************************************************
  * Start webserver
  ****************************************************/
 
