@@ -1,4 +1,6 @@
 const express = require('express');
+const slug = require('slug');
+const arrayify = require('array-back');
 
 /*****************************************************
  * Define some constants and variables
@@ -6,6 +8,7 @@ const express = require('express');
 
 const app = express();
 const port = 3000;
+const categories = ["action", "adventure", "sci-fi", "animation", "horror", "thriller", "fantasy", "mystery", "comedy", "family"];
 const movies = [
         {
                 "id": 1,
@@ -53,6 +56,13 @@ const movies = [
  * Middleware
  ****************************************************/
 app.use(express.static('public'));
+app.use(express.json());
+app.use(express.urlencoded({extended: true}));
+
+/*****************************************************
+ * Set template engine
+ ****************************************************/
+app.set('view engine', 'ejs');
 
 
 /*****************************************************
@@ -62,45 +72,48 @@ app.use(express.static('public'));
  *   home - show movielist
  * GET /movies/:movieId/:slug   
  *   show movie details
+ * GET /movies/add              
+ *   show form to add movie
+ * POST /movies/add             
+ *   add movie and show movielist
  ****************************************************/
  
 app.get('/',  (req, res) => {
-    let doc = '<!doctype html>';
-    doc += '<title>Movies</title>'
-    doc += '<h1>Movies</h1>'
 
-    movies.forEach(movie => {
-        doc += "<section>";
-        doc += `<h2>${movie.name}</h2>`;
-        doc += `<h3>${movie.year}</h3>`;
-        doc += "<h3>Categories:</h3>";
-        doc += "<ul>";
-        movie.categories.forEach(category => {
-            doc += `<li>${category}</li>`;
-        });
-        doc += "</ul>";
-        doc += `<a href="/movies/${movie.id}/${movie.slug}">More info</a>`;
-        doc += "</section>";
-    });
-    res.send(doc);
+    // RENDER PAGE
+    const title  = (movies.length == 0) ? "No movies were found" : "Movies";
+    res.render('movielist', {title, movies});
 });
 
 app.get('/movies/:movieId/:slug', (req, res) => {
+
+    // FIND MOVIE
     const id = req.params.movieId;
     const movie = movies.find( element => element.id == id);
     console.log(movie);
-    let doc = '<!doctype html>';
-    doc += `<title>Movie details for ${movie.name}</title>`;
-    doc += `<h1>${movie.name}</h1>`;
-    doc += `<h2>${movie.year}</h2>`;
-    doc += "<h2>Categories</h2>";
-    doc += "<ul>";
-    movie.categories.forEach( category => {
-        doc += `<li>${category}</li>`;
-    })
-    doc += "</ul>";
-    doc += `<p>${movie.storyline}</p>`;
-    res.send(doc);
+
+    // RENDER PAGE
+    res.render('moviedetails', {title: `Moviedetails for ${movie.name}`, movie});
+});
+
+app.get('/movies/add', (req, res) => {
+  res.render('addmovie', {title: "Add a movie", categories});
+});
+
+app.post('/movies/add', (req, res) => {
+    let movie = {
+        slug: slug(req.body.name),
+        name: req.body.name, 
+        year: req.body.year, 
+        categories: arrayify(req.body.categories), 
+        storyline: req.body.storyline
+    };
+    console.log("Adding movie: ", movie);
+    // ADD MOVIE 
+    movies.push(movie);
+    // RENDER PAGE
+    const title =  "Succesfully added the movie";
+    res.render('movielist', {title, movies})
 });
 
 /*****************************************************
@@ -109,7 +122,7 @@ app.get('/movies/:movieId/:slug', (req, res) => {
 
 app.use(function (req, res) {
     console.error("Error 404: page nog found");
-    res.status(404).send( "Error 404: page not found");
+    res.status(404).render('404', {title: "Error 404: page not found"});
 });
 
 /*****************************************************
